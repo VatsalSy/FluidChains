@@ -2,7 +2,7 @@ function field = structuredData(datafile, gridfile, X, Y, fieldStr)
 %input datafile (.gfs) and gridfile (.dat) along with X Y and Z from mesh grid
 %output field 
 
-%% more about the gridfile: can be saved with this 
+%% more about the gridfile: it can be saved with this 
 
 %gridfile='cartgrid2.dat';
 %disp('saving the 2d grid');
@@ -10,9 +10,13 @@ function field = structuredData(datafile, gridfile, X, Y, fieldStr)
 %loc=[X(:),Y(:),Z(:)];
 %save(gridfile,'loc','-ASCII','-SINGLE');
 
+% This command is used for getting field values as a 2D matrix. 
+% USed for the 2D slices inside the 3D simulation. 
+
 disp('interpolating and loading')    
 tic, 
 ll=evalc(['!gfs2oogl3D -p ' gridfile ' -c ' fieldStr ' < ' datafile ]); 
+% comment the third column -> Z
 lolo=textscan(ll,'%f %f %*f %f \n'); 
 toc
 try

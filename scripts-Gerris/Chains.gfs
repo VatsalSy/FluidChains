@@ -6,11 +6,11 @@ Global {
     // Constants
     #define level             8.                                        // maximum level of the flow
     #define VAR(T,gas,liq)    ((1.-T)*gas + T*liq)                      // the function
-    #define g                 9.81                                      // acceleration due to gravity
+    #define g                 9.8056                                      // acceleration due to gravity
     #define ratio_RHO         1192.9                                     // density ratio of the two fluids
-    #define RHOgas            1.                                        // density of gas
-    #define n                 1.8                                      // kinematic viscosity ratio
-    #define ratio             10.                                       // ratio between the domain length and diameter of max jet
+    #define RHOgas            1.                                         // density of gas
+    #define n                 1.8                                        // kinematic viscosity ratio
+    #define ratio             10.                                        // ratio between the domain length and diameter of max jet
 
     // User input sudo
     #define MUliq             0.038976                                  // corresponding to the 0.26275 Mo and 3.4051 Bond
@@ -19,20 +19,20 @@ Global {
     #define DB                0.005                                     // Diameter of bottom jet -- all numbers are based on this
     #define FrB               2.5                                       // Froude number of bottom jet
     #define FrT               2.5                                       // Froude number
-    #define Bo                6.                                    // Bond number of the flow -- left jet KEEP CONSTANT
+    #define Bo                5.                                        // Bond number of the flow -- left jet KEEP CONSTANT
     #define ratioDist         5.                                        // ratio of distance between the jets and the left jet
-    #define e                 0.                									     // eccentricity/2 provided to the jets
+    #define e                 0.                			// eccentricity/2 provided to the jets
 
     // Properties stuff
-    #define RHOliq            RHOgas*ratio_RHO                          // density of liquid
-    #define RHO(T)            VAR(T,RHOgas,RHOliq)                      // two phase density vof equation
-    #define MUgas             (MUliq*RHOgas)/(RHOliq*n)                 // dynamic viscosity of gas
-    #define Mu(T)             VAR(T,MUgas,MUliq)                        // dynamic viscosity vof equation
+    #define RHOliq            RHOgas*ratio_RHO                            // density of liquid
+    #define RHO(T)            VAR(T,RHOgas,RHOliq)                        // two phase density vof equation
+    #define MUgas             (MUliq*RHOgas)/(RHOliq*n)                   // dynamic viscosity of gas
+    #define Mu(T)             VAR(T,MUgas,MUliq)                          // dynamic viscosity vof equation
 
     // bottom jet Characteristics
-    #define radiusB           DB/2                                       // radius of bottom jet
+    #define radiusB           DB/2                                        // radius of bottom jet
     #define VelBottom         FrB*sqrt(g*DB)                              // absolute velocity of left jet
-    #define uBottom           VelBottom*cos(alpha)                     // definition of the inlet velocity
+    #define uBottom           VelBottom*cos(alpha)                        // definition of the inlet velocity
     #define vBottom           VelBottom*sin(alpha)
     #define sigma             RHOliq*g*DB*DB/Bo                           // surface tension of fluids
 
@@ -41,7 +41,7 @@ Global {
     #define DT                ratioDBT*DB                                 // Diameter of top jet
     #define radiusT           DT/2.
     #define VelTop            FrT*sqrt(g*DT)                              // absolute velocity of top jet
-    #define uTop              VelTop*cos(alpha)                        // definition of the inlet velocity
+    #define uTop              VelTop*cos(alpha)                           // definition of the inlet velocity
     #define vTop              VelTop*sin(alpha)
     #define ReB               RHOliq*VelBottom*DB/MUliq
     #define ReT               RHOliq*VelTop*DT/MUliq
@@ -50,13 +50,13 @@ Global {
     #define Dist              ratioDist*(DB)                               // distance between the jet centers
     #define RB(x,y,z)         (((x+Ldomain/2)*sin(alpha) - (y+Dist/2)*cos(alpha))*((x+Ldomain/2)*sin(alpha) - (y+Dist/2)*cos(alpha)) + (z+e)*(z+e))    // a cylinder with y as the axis
     #define RT(x,y,z)         (((x+Ldomain/2)*sin(alpha) + (y-Dist/2)*cos(alpha))*((x+Ldomain/2)*sin(alpha) + (y-Dist/2)*cos(alpha)) + z*z) // a cylinder with y as the axis
-    #define turbT(x,y,z)      pow(1 - sqrt(RT(x,y,z))/radiusT,1/7)*8/7
-    #define lamT(x,y,z)       2*(1 - RT(x,y,z)/(radiusT*radiusT))
-    #define turbB(x,y,z)      pow(1 - sqrt(RB(x,y,z))/radiusB,1/7)*8/7
+    #define turbT(x,y,z)      pow(1 - sqrt(RT(x,y,z))/radiusT,1/7)*8/7     // These four lines declare the velocity profile. 
+    #define lamT(x,y,z)       2*(1 - RT(x,y,z)/(radiusT*radiusT))          // Laminar has parabolic patching at the inlet. 
+    #define turbB(x,y,z)      pow(1 - sqrt(RB(x,y,z))/radiusB,1/7)*8/7     // Turbulent jets have power law profile at the inlet. 
     #define lamB(x,y,z)       2*(1 - RB(x,y,z)/(radiusB*radiusB))
        }
 
-Time { end = 0.25 dtmax = 5e-3 }
+Time { end = 0.25 dtmax = 5e-4 }
 Refine {
   double yB2 = -(x+Ldomain/2.)/tan(alpha) - Dist/2. + DB/(2*cos(alpha));
   double yT1 = (x+Ldomain/2)/tan(alpha) + Dist/2 - DT/(2*cos(alpha));
@@ -65,7 +65,12 @@ Refine {
 Variable T0B
 InitFraction {} T0B (radiusB*radiusB - RB(x,y,z))
 Variable T0T
-VariableTracerVOF {} T
+# Use VOF Height if it is available in 3D by uncommenting the next line and commenting the line 72
+#VariableTracerVOFHeight T
+
+# Else use normal VOF
+VariableTracerVOF T
+
 VariableCurvature K T Kmax
 InitFraction {} T0T (radiusT*radiusT - RT(x,y,z))
 PhysicalParams { alpha = 1./RHO(T)  L = Ldomain }
@@ -73,9 +78,9 @@ PhysicalParams { alpha = 1./RHO(T)  L = Ldomain }
 Init {} {
      ## T initialization is done assuming normal exit from the nozzle
      T = {
-       double yB2 = -(x+Ldomain/2.)/tan(alpha) - Dist/2. + DB/(cos(alpha));
+       double yB2 = -(x+Ldomain/2.)/tan(alpha) - Dist/2 + DB/(cos(alpha));
        double yT1 = (x+Ldomain/2)/tan(alpha) + Dist/2 - DT/(cos(alpha));
-       return y < yB2 ? T0B : y > yT1 ? T0T : 0;
+       return y < yB2  ? T0B : y > yT1 ? T0T : 0;
      }
      ## U patching based on the Reynolds number of the jet
      U = {
@@ -93,9 +98,21 @@ Init {} {
 }
 
 AdaptGradient { istep = 1 } {
-maxlevel =  level
-cmax = 1e-2
-minlevel = 0 } T
+  maxlevel =  level
+  cmax = 1e-2
+  minlevel = 0 } T
+
+# If VOF height is available in 3D, uncomment this line. This adapts the mesh based on thickness. This is to enhance refinement for the sheet. 
+#AdaptThickness { istep = 1 } {
+#  maxlevel = level + 1
+#  cmax = 1e-2
+#  minlevel = 0 } T
+
+AdaptVorticity { istep = 1 } {
+  maxlevel = level - 1
+  cmax = 1e-2
+  minlevel = 0 }
+
 EventBalance {istep = 1} 0.4
 AdvectionParams{cfl = 0.25}
 
@@ -104,36 +121,22 @@ Source {} U g
 SourceViscosity Mu(T)
 SourceTension T sigma K
 
-## Want out flow at the boundaries
-#left
-RemoveDroplets { istep = 1 } T -2 (x < -Ldomain/2 + 0.001*DB ? T : 0 )
-#bottom
-RemoveDroplets { istep = 1 } T -1 (y < -Ldomain/2 + 0.001*DB ? T : 0 )
-#top
-RemoveDroplets { istep = 1 } T -1 (y > Ldomain/2 - 0.001*DB  ? T : 0 )
-#back
-RemoveDroplets { istep = 1 } T -1 (z < -Ldomain/2 + 0.001*DB ? T : 0 )
-#front
-RemoveDroplets { istep = 1 } T -1 (z > Ldomain/2 - 0.001*DB  ? T : 0 )
-
 # Outputs
 GfsOutputTime { istep = 1 } stderr
 OutputSimulation { istep = 1 } stdout
-OutputSimulation {step = 0.001} intermediate/sim%4.3f.gfs
+OutputSimulation {step = 0.005} intermediate/sim%4.3f.gfs
 
-#GModule gfsview
-#OutputView {istep = 1} {ppm2mpeg -s 1366*768 > T.mp4 } {
-#format = PPM width =1366 height = 768
-#} T.gfv
-#GModule gfsview
-#OutputView {istep = 1} {ppm2mpeg -s 1366*768 > Tf.mp4 } {
-#format = PPM width =1366 height = 768
-#} Tf.gfv
+## output and video
+GModule gfsview
+OutputView {istep = 1} {ppm2mpeg -s 1366*768 > T.mp4 } {
+format = PPM width =1366 height = 768
+} T.gfv
 
 }
 
 GfsBox { #1
-  	bottom = Boundary
+    top = BoundaryOutflow
+  	bottom = BoundaryOutflow
     left = Boundary {
           BcDirichlet T (y < 0 ? T0B : y > 0 ? T0T : 0)
           BcDirichlet V {
@@ -148,19 +151,20 @@ GfsBox { #1
           }
           BcDirichlet W 0
     }
-    front = Boundary
-    back = Boundary
+    front = BoundaryOutflow
+    back = BoundaryOutflow
 }
 GfsBox { #2
-  	bottom = Boundary
-    back = Boundary
-    front = Boundary
+    top = BoundaryOutflow
+  	bottom = BoundaryOutflow
+    back = BoundaryOutflow
+    front = BoundaryOutflow
 }
 GfsBox { #3
-    bottom = Boundary
-    back = Boundary
-    front = Boundary
-    top = Boundary
+    bottom = BoundaryOutflow
+    back = BoundaryOutflow
+    front = BoundaryOutflow
+    top = BoundaryOutflow
     right = BoundaryOutflow
 }
 # straight right first layer

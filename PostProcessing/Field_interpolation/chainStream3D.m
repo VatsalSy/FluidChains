@@ -1,4 +1,4 @@
-%% This file reads the intermediate file sim0.250.gfs and converts the structured non-uniform
+  %% This file reads the intermediate file sim0.250.gfs and converts the structured non-uniform
 %% data to uniform data in chain.mat
 clc
 clear

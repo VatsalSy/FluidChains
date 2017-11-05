@@ -1,8 +1,8 @@
-function field = structuredData3(datafile, gridfile, X, Y,Z, fieldStr)
+function field = structuredData(datafile, gridfile, X, Y, fieldStr)
 %input datafile (.gfs) and gridfile (.dat) along with X Y and Z from mesh grid
 %output field 
 
-%% more about the gridfile: can be saved with this 
+%% more about the gridfile: it can be saved with this 
 
 %gridfile='cartgrid2.dat';
 %disp('saving the 2d grid');
@@ -10,17 +10,21 @@ function field = structuredData3(datafile, gridfile, X, Y,Z, fieldStr)
 %loc=[X(:),Y(:),Z(:)];
 %save(gridfile,'loc','-ASCII','-SINGLE');
 
+% This command is used for getting field values as a 2D matrix. 
+% USed for the 2D slices inside the 3D simulation. 
+
 disp('interpolating and loading')    
 tic, 
 ll=evalc(['!gfs2oogl3D -p ' gridfile ' -c ' fieldStr ' < ' datafile ]); 
-lolo=textscan(ll,'%f %f %f %f \n'); 
+% comment the third column -> Z
+lolo=textscan(ll,'%f %f %*f %f \n'); 
 toc
 try
-    field=reshape(lolo{4},size(X)); 
+    field=reshape(lolo{3},size(X)); 
 catch
     disp('reshape failed while getting structured data.........')
-    x=lolo{1}; y=lolo{2}; z = lolo{3};
+    x=lolo{1}; y=lolo{2};
     clear ll lolo
-    plot(X(:),Y(:),Z(:),'ko',x,y,z,'r.')
+    plot(X(:),Y(:),'ko',x,y,'r.')
     legend('Expected Points', 'Actual Points')
 end
